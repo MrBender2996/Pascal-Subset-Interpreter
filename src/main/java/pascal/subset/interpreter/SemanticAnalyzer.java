@@ -1,20 +1,21 @@
-package pascal.subset.interpreter.symbol_table;
+package pascal.subset.interpreter;
+
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.symbol_table.Symbol;
+import pascal.subset.interpreter.symbol_table.SymbolTable;
+import pascal.subset.interpreter.symbol_table.VarSymbol;
 
-import java.util.Map;
-
-public class SymbolTableBuilder implements NodeVisitor {
+public class SemanticAnalyzer implements NodeVisitor {
     final SymbolTable symbolTable = new SymbolTable();
     final Node syntaxTree;
 
-    public SymbolTableBuilder(final Node syntaxTree) {
+    public SemanticAnalyzer(final Node syntaxTree) {
         this.syntaxTree = syntaxTree;
     }
 
-    public Map<String, Symbol> buildTable() {
+    void analyze() {
         visit(syntaxTree);
-        return symbolTable.symbols;
     }
 
     @Override
@@ -87,6 +88,10 @@ public class SymbolTableBuilder implements NodeVisitor {
             throw new IllegalStateException(node.varType().variableType().varType() + " was not recognized");
         }
 
+        if (symbolTable.lookup(node.variable().name()) != null) {
+            throw new IllegalStateException("Variable \"" + node.variable().name() + "\" have already been declared.");
+        }
+
         symbolTable.define(new VarSymbol(node.variable().name(), lookupTypeResult));
     }
 
@@ -119,5 +124,9 @@ public class SymbolTableBuilder implements NodeVisitor {
         if (lookupResult == null) {
             throw new IllegalStateException("Failed to find variable " + name + " in the symbol table");
         }
+    }
+
+    public SymbolTable symbolTable() {
+        return symbolTable;
     }
 }

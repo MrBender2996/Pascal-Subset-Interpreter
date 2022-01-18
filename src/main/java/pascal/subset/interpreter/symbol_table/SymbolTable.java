@@ -15,14 +15,17 @@ public class SymbolTable {
       symbols.put(real.name, real);
    }
 
-   void define(final Symbol symbol) {
+   public void define(final Symbol symbol) {
       symbols.put(symbol.name, symbol);
    }
 
-   Symbol lookup(final String name) {
+   public Symbol lookup(final String name) {
        return symbols.get(name);
    }
 
+   public Map<String, Symbol> symbols() {
+      return symbols;
+   }
 
    @Override
    public String toString() {
