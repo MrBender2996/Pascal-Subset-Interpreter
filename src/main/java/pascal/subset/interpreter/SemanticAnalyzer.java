@@ -1,20 +1,23 @@
-package pascal.subset.interpreter.symbol_table;
+package pascal.subset.interpreter;
+
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.symbol_table.ProcedureSymbol;
+import pascal.subset.interpreter.symbol_table.Symbol;
+import pascal.subset.interpreter.symbol_table.ScopedSymbolTable;
+import pascal.subset.interpreter.symbol_table.VarSymbol;
 
-import java.util.Map;
-
-public class SymbolTableBuilder implements NodeVisitor {
-    final SymbolTable symbolTable = new SymbolTable();
+public class SemanticAnalyzer implements NodeVisitor {
     final Node syntaxTree;
 
-    public SymbolTableBuilder(final Node syntaxTree) {
+    ScopedSymbolTable currentScope;
+
+    public SemanticAnalyzer(final Node syntaxTree) {
         this.syntaxTree = syntaxTree;
     }
 
-    public Map<String, Symbol> buildTable() {
+    void analyze() {
         visit(syntaxTree);
-        return symbolTable.symbols;
     }
 
     @Override
@@ -39,15 +42,18 @@ public class SymbolTableBuilder implements NodeVisitor {
             visitVariable((VariableNode) node);
         } else if (node instanceof VariableDeclarationNode) {
             visitVariableDeclaration((VariableDeclarationNode) node);
-        } else if (node instanceof ProcedureNode) {
-            visitProcedure((ProcedureNode) node);
+        } else if (node instanceof ProcedureDeclarationNode) {
+            visitProcedureDeclaration((ProcedureDeclarationNode) node);
         }
 
         return new Object(); // todo think is this the right pattern
     }
 
     void visitProgram(final ProgramNode node) {
+        currentScope = new ScopedSymbolTable("global", 0, currentScope);
+
         visit(node.block());
+        currentScope = currentScope.enclosingScope();
     }
 
     void visitBlock(final BlockNode node) {
@@ -82,16 +88,38 @@ public class SymbolTableBuilder implements NodeVisitor {
     }
 
     void visitVariableDeclaration(final VariableDeclarationNode node) {
-        final Symbol lookupTypeResult = symbolTable.lookup(node.varType().variableType().varType());
+        if (currentScope == null) {
+            throw new IllegalStateException("Visit variable declaration can not be called without a scope.");
+        }
+
+        final Symbol lookupTypeResult = currentScope.lookup(node.varType().variableType().varType());
         if (lookupTypeResult == null) {
             throw new IllegalStateException(node.varType().variableType().varType() + " was not recognized");
         }
 
-        symbolTable.define(new VarSymbol(node.variable().name(), lookupTypeResult));
+        if (currentScope.isDuplicate(node.variable().name())) {
+            throw new IllegalStateException("Variable \"" + node.variable().name() + "\" has already been declared.");
+        }
+
+        currentScope.define(new VarSymbol(node.variable().name(), lookupTypeResult));
     }
 
-    void visitProcedure(final ProcedureNode node) {
-        // pass
+    void visitProcedureDeclaration(final ProcedureDeclarationNode node) {
+        final ProcedureSymbol procSymbol = new ProcedureSymbol(node.name());
+        currentScope.define(procSymbol);
+
+        currentScope = new ScopedSymbolTable(node.name(), currentScope.scopeLevel() + 1, currentScope);
+
+        for (final ParameterNode param : node.params()) {
+            final String paramName = param.name();
+            final Symbol paramType = currentScope.lookup(param.type().token().name());
+            final VarSymbol paramSymbol = new VarSymbol(paramName, paramType);
+            currentScope.define(paramSymbol);
+            procSymbol.params().add(paramSymbol);
+        }
+
+        visit(node.block());
+        currentScope = currentScope.enclosingScope();
     }
 
     void visitAssign(final AssignNode node) {
@@ -102,8 +130,12 @@ public class SymbolTableBuilder implements NodeVisitor {
                     " but found: " + left);
         }
 
+        if (currentScope == null) {
+            throw new IllegalStateException("Visit assign can not be called without a scope.");
+        }
+
         final String name = ((VariableNode) left).name();
-        final Symbol lookupResult = symbolTable.lookup(name);
+        final Symbol lookupResult = currentScope.lookup(name);
 
         if (lookupResult == null) {
            throw new IllegalStateException("Failed to find variable \"" + name + "\" in the symbol table");
@@ -113,11 +145,15 @@ public class SymbolTableBuilder implements NodeVisitor {
     }
 
     void visitVariable(final VariableNode node) {
+        if (currentScope == null) {
+            throw new IllegalStateException("Visit variable can not be called without a scope.");
+        }
+
         final String name = node.name();
-        final Symbol lookupResult = symbolTable.lookup(name);
+        final Symbol lookupResult = currentScope.lookup(name);
 
         if (lookupResult == null) {
-            throw new IllegalStateException("Failed to find variable " + name + " in the symbol table");
+            throw new IllegalStateException("Failed to find variable \"" + name + "\" in the symbol table");
         }
     }
 }

@@ -1,7 +1,7 @@
 package pascal.subset.interpreter;
 
+
 import pascal.subset.interpreter.ast.Node;
-import pascal.subset.interpreter.symbol_table.SymbolTableBuilder;
 
 public class Main {
     public static void main(String[] args) {
@@ -21,10 +21,10 @@ public class Main {
         final Lexer lexer = new Lexer(program);
         final Parser parser = new Parser(lexer);
         final Node syntaxTree = parser.parse();
-        final SymbolTableBuilder symbolTableBuilder = new SymbolTableBuilder(syntaxTree);
+        final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(syntaxTree);
         final Interpreter interpreter = new Interpreter(syntaxTree);
 
-        symbolTableBuilder.buildTable();
+        semanticAnalyzer.analyze();
         interpreter.interpret();
 
         System.out.println("MEMORY STATE AFTER THE PROGRAM EXECUTED:");

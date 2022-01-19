@@ -40,8 +40,8 @@ public class Interpreter implements NodeVisitor {
             visitVarDeclaration((VariableDeclarationNode) node);
         } else if (node instanceof VariableTypeNode) {
             visitVarType((VariableTypeNode) node);
-        } else if (node instanceof ProcedureNode) {
-            visitProcedure((ProcedureNode) node);
+        } else if (node instanceof ProcedureDeclarationNode) {
+            visitProcedure((ProcedureDeclarationNode) node);
         }
 
         return new Object(); // todo get rid of this hack !!!
@@ -145,7 +145,7 @@ public class Interpreter implements NodeVisitor {
         throw new IllegalStateException("Token of the node " + node + " does not match +|-");
     }
 
-    void visitProcedure(final ProcedureNode node) {
+    void visitProcedure(final ProcedureDeclarationNode node) {
         // pass
     }
 
