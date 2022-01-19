@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
         final String program = "PROGRAM Part11;\n" +
                 "VAR\n" +
-                "   number, y : INTEGER;\n" +
+                "   number : INTEGER;\n" +
                 "   a, b   : INTEGER;\n" +
                 "   y      : REAL;\n" +
                 "\n" +

@@ -118,12 +118,12 @@ public class Parser {
     }
 
     List<Node> declarations() {
-        final List<Node> result = new ArrayList<>();
-        if (crtToken.type() == TokenType.KEYWORD && ((KeyWordToken)crtToken).keyWord() == KeyWords.VAR) {
+        final List<Node> declarations = new ArrayList<>();
+        if (crtToken.type() == TokenType.KEYWORD && ((KeyWordToken) crtToken).keyWord() == KeyWords.VAR) {
             feed(TokenType.KEYWORD);
 
             while (crtToken.type() == TokenType.VARIABLE) {
-                result.addAll(varDeclarations()); // todo carefully with adding all vars to the declaration block;
+                declarations.addAll(varDeclarations()); // todo carefully with adding all vars to the declaration block;
                 feed(TokenType.SEMICOLON);
             }
         }
@@ -137,15 +137,60 @@ public class Parser {
 
             final VariableNode variable = variable();
             final String procedureName = variable.name();
+
+            List<ParameterNode> params = null;
+            if (crtToken.type() == TokenType.OPERATOR && ((OperatorToken) crtToken).operator() == '(') {
+                feed(TokenType.OPERATOR);
+                params = formalParameterList();
+                feed(TokenType.OPERATOR);
+            }
+
             feed(TokenType.SEMICOLON);
             final BlockNode block = block();
             feed(TokenType.SEMICOLON);
 
-            result.add(new ProgramNode(procedureName, block));
+            declarations.add(new ProcedureDeclarationNode(procedureName, params, block));
         }
 
-        return result;
+        return declarations;
     }
+
+    List<ParameterNode> formalParameters() {
+        final List<ParameterNode> paramNodes = new ArrayList<>();
+        final List<Token> paramsTokens = new ArrayList<>();
+
+        paramsTokens.add(crtToken);
+        feed(TokenType.VARIABLE);
+
+        while (crtToken.type() == TokenType.COMMA) {
+            feed(TokenType.COMMA);
+            paramsTokens.add(crtToken);
+            feed(TokenType.VARIABLE);
+        }
+
+        feed(TokenType.COLON);
+        final VariableTypeNode typeNode = typeSpecification();
+        for (final Token paramsToken : paramsTokens) {
+            paramNodes.add(new ParameterNode(((VariableToken) paramsToken).variable(), typeNode));
+        }
+
+        return paramNodes;
+    }
+
+    List<ParameterNode> formalParameterList() {
+        if (crtToken.type() != TokenType.VARIABLE) {
+            return new ArrayList<>();
+        }
+
+        final List<ParameterNode> paramNodes = formalParameters();
+        while (crtToken.type() == TokenType.SEMICOLON) {
+            feed(TokenType.SEMICOLON);
+            paramNodes.addAll(formalParameters());
+        }
+
+        return paramNodes;
+    }
+
 
     List<Node> varDeclarations() {
         final List<Node> variables = new ArrayList<>();
