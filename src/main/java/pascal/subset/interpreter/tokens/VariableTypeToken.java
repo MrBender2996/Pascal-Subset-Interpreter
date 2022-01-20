@@ -5,9 +5,11 @@ import pascal.subset.interpreter.symbol_table.Types;
 public class VariableTypeToken extends Token {
     final Types variableType;
 
-    public VariableTypeToken(final TokenType type, final Types variableType) {
+    public VariableTypeToken(final TokenType type, final Types variableType, final int line, final int column) {
         this.type = type;
         this.variableType = variableType;
+        this.line = line;
+        this.column = column;
     }
 
     public Types variableType() {
@@ -17,7 +19,10 @@ public class VariableTypeToken extends Token {
     @Override
     public String toString() {
         return "VariableTypeToken{" +
-                "variableType=" + variableType +
+                "type=" + type +
+                ", line=" + line +
+                ", column=" + column +
+                ", variableType=" + variableType +
                 '}';
     }
 }

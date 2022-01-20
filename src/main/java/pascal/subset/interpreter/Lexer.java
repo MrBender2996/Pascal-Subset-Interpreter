@@ -1,5 +1,8 @@
 package pascal.subset.interpreter;
 
+import pascal.subset.interpreter.errors.ErrorCodes;
+import pascal.subset.interpreter.errors.LexerError;
+import pascal.subset.interpreter.errors.ParserError;
 import pascal.subset.interpreter.symbol_table.Types;
 import pascal.subset.interpreter.tokens.*;
 
@@ -9,6 +12,8 @@ public class Lexer {
     final String text;
 
     int crtPos = 0;
+    int line = 1;
+    int column = 1;
 
     public Lexer(final String text) {
         this.text = text;
@@ -26,8 +31,9 @@ public class Lexer {
         // todo decide how to process FLOAT and INT division???
         char crtChar = text.charAt(crtPos);
         if (crtChar == '+' || crtChar == '-' || crtChar == '/' || crtChar == '*' || crtChar == '(' || crtChar == ')') {
+            final OperatorToken operatorToken = new OperatorToken(TokenType.OPERATOR, crtChar, line, column);
             advance();
-            return new OperatorToken(TokenType.OPERATOR, crtChar);
+            return operatorToken;
         }
 
         if (crtChar == '{') {
@@ -44,19 +50,22 @@ public class Lexer {
         }
 
         if (crtChar == ':' && peek() == '=') {
+            final AssignToken assignToken = new AssignToken(TokenType.ASSIGN, line, column);
             advance();
             advance();
-            return new AssignToken(TokenType.ASSIGN);
+            return assignToken;
         }
 
         if (crtChar == ':') {
+            final ColonToken colonToken = new ColonToken(TokenType.COLON, line, column);
             advance();
-            return new ColonToken(TokenType.COLON);
+            return colonToken;
         }
 
         if (crtChar == ',') {
+            final CommaToken commaToken = new CommaToken(TokenType.COMMA, line, column);
             advance();
-            return new CommaToken(TokenType.COMMA);
+            return commaToken;
         }
 
         if (isAlphaNumeric(crtChar)) {
@@ -64,32 +73,36 @@ public class Lexer {
         }
 
         if (crtChar == ';') {
+            final SemiColonToken semiColonToken = new SemiColonToken(TokenType.SEMICOLON, line, column);
             advance();
-            return new SemiColonToken(TokenType.SEMICOLON);
+            return semiColonToken;
         }
 
         if (crtChar == '.') {
+            final DotToken dotToken = new DotToken(TokenType.DOT, line, column);
             advance();
-            return new DotToken(TokenType.DOT);
+            return dotToken;
         }
 
-        throw new IllegalArgumentException("Error parsing input text");
+        throw formError();
     }
 
     Token nextIdentifier() {
         final StringBuilder sb = new StringBuilder();
 
+        final int lexemeStartColumn = column;
         while (!isSpaceOrEol(text.charAt(crtPos)) && isAlphaNumeric(text.charAt(crtPos))) {
-            sb.append(text.charAt(crtPos++));
+            sb.append(text.charAt(crtPos));
+            advance();
         }
 
         final String result = sb.toString();
         if (KeyWords.isKeyWord(result)) {
-            return new KeyWordToken(TokenType.KEYWORD, KeyWords.valueOf(result));
+            return new KeyWordToken(TokenType.KEYWORD, KeyWords.valueOf(result), line, lexemeStartColumn);
         } else if (Types.isVarType(result)) {
-            return new VariableTypeToken(TokenType.VARIABLE_TYPE, Types.valueOf(result));
+            return new VariableTypeToken(TokenType.VARIABLE_TYPE, Types.valueOf(result), line, lexemeStartColumn);
         } else {
-            return new VariableToken(TokenType.VARIABLE, result);
+            return new VariableToken(TokenType.VARIABLE, result, line, lexemeStartColumn);
         }
     }
 
@@ -97,11 +110,11 @@ public class Lexer {
         char crtChar = text.charAt(crtPos);
 
         while (isSpaceOrEol(crtChar)) {
-            if (++crtPos >= text.length()) {
+            crtChar = advance();
+
+            if(crtChar == EOF_CHAR) {
                 return true;
             }
-
-            crtChar = text.charAt(crtPos);
         }
 
         return false;
@@ -133,7 +146,13 @@ public class Lexer {
     }
 
     char advance() {
+        if (text.charAt(crtPos) == '\n') {
+            line++;
+            column = 0;
+        }
+
         crtPos++;
+        column++;
         if (crtPos >= text.length()) {
             return EOF_CHAR;
         }
@@ -155,15 +174,25 @@ public class Lexer {
             return null;
         }
 
+        final int lexemeStatColumn = column;
         if (text.charAt(crtPos) == '.') {
             sb.append('.');
             for (char c = advance(); isDigit(c) && c != EOF_CHAR; c = advance()) {
                 sb.append(c);
             }
 
-            return new RealConstToken(TokenType.REAL_CONST, Float.parseFloat(sb.toString()));
+            return new RealConstToken(TokenType.REAL_CONST, Float.parseFloat(sb.toString()), line, lexemeStatColumn);
         } else {
-            return new IntegerConstToken(TokenType.INTEGER_CONST, Integer.parseInt(sb.toString()));
+            return new IntegerConstToken(TokenType.INTEGER_CONST, Integer.parseInt(sb.toString()), line, lexemeStatColumn);
         }
+    }
+
+    private LexerError formError() throws LexerError {
+        final String message = String.format("Lexer error on '%c' line: %d column: %d",
+                text.charAt(crtPos),
+                line,
+                column);
+
+       return new LexerError(ErrorCodes.UNEXPECTED_LEXEME, message);
     }
 }

@@ -2,6 +2,8 @@ package pascal.subset.interpreter;
 
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.errors.ErrorCodes;
+import pascal.subset.interpreter.errors.ParserError;
 import pascal.subset.interpreter.tokens.*;
 
 import java.util.ArrayList;
@@ -17,7 +19,7 @@ public class Parser {
 
     void feed(final TokenType expectedType) {
         if (expectedType != crtToken.type()) {
-            throw new IllegalArgumentException("Failed to parse exception, expected " + expectedType.name() +
+            throw new ParserError(ErrorCodes.UNEXPECTED_TOKEN, crtToken, "Expected " + expectedType +
                     ", but found " + crtToken);
         }
 
@@ -97,7 +99,7 @@ public class Parser {
         }
     }
 
-    Node program() {
+    ProgramNode program() {
         crtToken = lexer.nextToken();
         feed(TokenType.KEYWORD);
 
@@ -105,7 +107,7 @@ public class Parser {
         final String programName = varNode.name();
         feed(TokenType.SEMICOLON);
 
-        final Node programNode = new ProgramNode(programName, block());
+        final ProgramNode programNode = new ProgramNode(programName, block());
         feed(TokenType.DOT);
 
         return programNode;
@@ -113,8 +115,8 @@ public class Parser {
 
     BlockNode block() {
         final List<Node> declarations = declarations();
-        final Node compoundStatement = compoundStatement();
-        return new BlockNode(declarations, (CompoundNode) compoundStatement);
+        final CompoundNode compoundStatement = compoundStatement();
+        return new BlockNode(declarations, compoundStatement);
     }
 
     List<Node> declarations() {
@@ -123,7 +125,7 @@ public class Parser {
             feed(TokenType.KEYWORD);
 
             while (crtToken.type() == TokenType.VARIABLE) {
-                declarations.addAll(varDeclarations()); // todo carefully with adding all vars to the declaration block;
+                declarations.addAll(varDeclarations());
                 feed(TokenType.SEMICOLON);
             }
         }
@@ -135,24 +137,28 @@ public class Parser {
             }
             feed(TokenType.KEYWORD);
 
-            final VariableNode variable = variable();
-            final String procedureName = variable.name();
-
-            List<ParameterNode> params = null;
-            if (crtToken.type() == TokenType.OPERATOR && ((OperatorToken) crtToken).operator() == '(') {
-                feed(TokenType.OPERATOR);
-                params = formalParameterList();
-                feed(TokenType.OPERATOR);
-            }
-
-            feed(TokenType.SEMICOLON);
-            final BlockNode block = block();
-            feed(TokenType.SEMICOLON);
-
-            declarations.add(new ProcedureDeclarationNode(procedureName, params, block));
+            declarations.add(procedureDeclaration());
         }
 
         return declarations;
+    }
+
+    ProcedureDeclarationNode procedureDeclaration() {
+        final VariableNode variable = variable();
+        final String procedureName = variable.name();
+
+        List<ParameterNode> params = null;
+        if (crtToken.type() == TokenType.OPERATOR && ((OperatorToken) crtToken).operator() == '(') {
+            feed(TokenType.OPERATOR);
+            params = formalParameterList();
+            feed(TokenType.OPERATOR);
+        }
+
+        feed(TokenType.SEMICOLON);
+        final BlockNode block = block();
+        feed(TokenType.SEMICOLON);
+
+        return new ProcedureDeclarationNode(procedureName, params, block);
     }
 
     List<ParameterNode> formalParameters() {
@@ -207,9 +213,9 @@ public class Parser {
         feed(TokenType.COLON);
 
         final List<Node> result = new ArrayList<>();
-        final Node varType = typeSpecification();
+        final VariableTypeNode varType = typeSpecification();
         for (final Node variable : variables) {
-            result.add(new VariableDeclarationNode((VariableNode) variable, (VariableTypeNode) varType));
+            result.add(new VariableDeclarationNode((VariableNode) variable, varType));
         }
 
         return result;
@@ -266,8 +272,8 @@ public class Parser {
 
     VariableNode variable() {
         if (crtToken.type() != TokenType.VARIABLE) {
-            throw new IllegalStateException(
-                    "Parser method \"variable\" expected VARIABLE token, but found: " + crtToken);
+            throw new ParserError(ErrorCodes.UNEXPECTED_TOKEN, crtToken, "Expected " + TokenType.VARIABLE +
+                    ", but found " + crtToken);
         }
 
         final VariableNode result = new VariableNode((VariableToken) crtToken);
@@ -282,7 +288,8 @@ public class Parser {
     public Node parse() {
         final Node result = program();
         if (crtToken.type() != TokenType.EOF) {
-            throw new IllegalStateException("Parser expected token \"EOF\", but found " + crtToken);
+            throw new ParserError(ErrorCodes.UNEXPECTED_TOKEN, crtToken, "Expected " + TokenType.EOF +
+                    ", but found " + crtToken);
         }
 
         return result;

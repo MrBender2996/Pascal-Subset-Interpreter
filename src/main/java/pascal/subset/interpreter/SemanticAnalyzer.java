@@ -2,6 +2,8 @@ package pascal.subset.interpreter;
 
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.errors.ErrorCodes;
+import pascal.subset.interpreter.errors.SemanticError;
 import pascal.subset.interpreter.symbol_table.ProcedureSymbol;
 import pascal.subset.interpreter.symbol_table.Symbol;
 import pascal.subset.interpreter.symbol_table.ScopedSymbolTable;
@@ -23,9 +25,9 @@ public class SemanticAnalyzer implements NodeVisitor {
     @Override
     public Object visit(final Node node) {
         if (node instanceof ProgramNode) {
-           visitProgram((ProgramNode) node);
+            visitProgram((ProgramNode) node);
         } else if (node instanceof BlockNode) {
-           visitBlock((BlockNode) node);
+            visitBlock((BlockNode) node);
         } else if (node instanceof BinaryOpNode) {
             visitBinaryOperation((BinaryOpNode) node);
         } else if (node instanceof NumberNode) {
@@ -94,11 +96,11 @@ public class SemanticAnalyzer implements NodeVisitor {
 
         final Symbol lookupTypeResult = currentScope.lookup(node.varType().variableType().varType());
         if (lookupTypeResult == null) {
-            throw new IllegalStateException(node.varType().variableType().varType() + " was not recognized");
+            throw new SemanticError(ErrorCodes.ID_NOT_FOUND, node.variable().token(), "Identifier id not found -> " + node.variable().token());
         }
 
         if (currentScope.isDuplicate(node.variable().name())) {
-            throw new IllegalStateException("Variable \"" + node.variable().name() + "\" has already been declared.");
+            throw new SemanticError(ErrorCodes.DUPLICATE_ID, node.variable().token(), "Duplicate id found -> " + node.variable().token());
         }
 
         currentScope.define(new VarSymbol(node.variable().name(), lookupTypeResult));
@@ -126,8 +128,8 @@ public class SemanticAnalyzer implements NodeVisitor {
         final Node left = node.left();
 
         if (!(left instanceof VariableNode)) {
-            throw new IllegalStateException("Symbol table builder expected assign node left child to be VariableNode," +
-                    " but found: " + left);
+            throw new IllegalStateException("Expected assign node left child to be VariableNode," +
+                    " but it was: " + left);
         }
 
         if (currentScope == null) {
@@ -138,7 +140,7 @@ public class SemanticAnalyzer implements NodeVisitor {
         final Symbol lookupResult = currentScope.lookup(name);
 
         if (lookupResult == null) {
-           throw new IllegalStateException("Failed to find variable \"" + name + "\" in the symbol table");
+            throw new SemanticError(ErrorCodes.ID_NOT_FOUND, ((VariableNode) left).token(), "Identifier id not found -> " + ((VariableNode) left).token());
         }
 
         visit(node.right());

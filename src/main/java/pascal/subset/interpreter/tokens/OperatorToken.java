@@ -3,9 +3,11 @@ package pascal.subset.interpreter.tokens;
 public class OperatorToken extends Token {
     char operator;
 
-    public OperatorToken(final TokenType type, final char operator) {
+    public OperatorToken(final TokenType type, final char operator, final int line, final int column) {
         this.type = type;
         this.operator = operator;
+        this.line = line;
+        this.column = column;
     }
 
     public char operator() {
@@ -15,8 +17,10 @@ public class OperatorToken extends Token {
     @Override
     public String toString() {
         return "OperatorToken{" +
-                "type=" + type +
-                ", operator=" + operator +
+                "operator=" + operator +
+                ", type=" + type +
+                ", line=" + line +
+                ", column=" + column +
                 '}';
     }
 }
