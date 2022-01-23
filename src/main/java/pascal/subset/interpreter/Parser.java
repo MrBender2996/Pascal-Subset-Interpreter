@@ -26,7 +26,7 @@ public class Parser {
         crtToken = lexer.nextToken();
     }
 
-    Node evaluateExpression() {
+    Node expression() {
         return evaluateSumOrSubstr();
     }
 
@@ -161,6 +161,31 @@ public class Parser {
         return new ProcedureDeclarationNode(procedureName, params, block);
     }
 
+    ProcedureCallNode procedureCall() {
+        if (crtToken.type() != TokenType.VARIABLE) {
+            throw new ParserError(ErrorCodes.UNEXPECTED_TOKEN, crtToken, "Expected " + TokenType.VARIABLE +
+                    ", but found " + crtToken);
+        }
+
+        final String procedureName = ((VariableToken) crtToken).variable();
+        feed(TokenType.VARIABLE);
+        feed(TokenType.OPERATOR); //todo think may be we need to declare separate Token types for l/r paren???
+
+        final List<Node> actualParams = new ArrayList<>();
+        if (crtToken.type() != TokenType.OPERATOR || ((OperatorToken)crtToken).operator() != ')') {
+            actualParams.add(expression());
+        }
+
+        while (crtToken.type() == TokenType.COMMA) {
+            feed(TokenType.COMMA);
+            actualParams.add(expression());
+        }
+
+        feed(TokenType.OPERATOR);
+
+        return new ProcedureCallNode(procedureName, actualParams);
+    }
+
     List<ParameterNode> formalParameters() {
         final List<ParameterNode> paramNodes = new ArrayList<>();
         final List<Token> paramsTokens = new ArrayList<>();
@@ -254,6 +279,8 @@ public class Parser {
     Node statement() {
         if (crtToken.type() == TokenType.KEYWORD && ((KeyWordToken) crtToken).keyWord() == KeyWords.BEGIN) {
             return compoundStatement();
+        } else if (crtToken.type() == TokenType.VARIABLE && lexer.currentChar() == '(') {
+            return procedureCall();
         } else if (crtToken.type() == TokenType.VARIABLE) {
             return assignStatement();
         }
@@ -265,7 +292,7 @@ public class Parser {
         final Node left = variable();
         final Token token = crtToken;
         feed(TokenType.ASSIGN);
-        final Node right = evaluateExpression();
+        final Node right = expression();
 
         return new AssignNode(left, (AssignToken) token, right);
     }

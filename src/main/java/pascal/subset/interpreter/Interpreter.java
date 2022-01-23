@@ -1,15 +1,14 @@
 package pascal.subset.interpreter;
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.memory.CallStack;
+import pascal.subset.interpreter.memory.FrameType;
+import pascal.subset.interpreter.memory.StackFrame;
 import pascal.subset.interpreter.tokens.*;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class Interpreter implements NodeVisitor {
-    //todo tmp hack for variables table, get rid of it later!
-    public static final Map<String, Object> GLOBAL_MEMORY = new ConcurrentHashMap<>();
-
+    final CallStack callStack = new CallStack();
     final Node syntaxTree;
 
     public Interpreter(final Node syntaxTree) {
@@ -41,10 +40,12 @@ public class Interpreter implements NodeVisitor {
         } else if (node instanceof VariableTypeNode) {
             visitVarType((VariableTypeNode) node);
         } else if (node instanceof ProcedureDeclarationNode) {
-            visitProcedure((ProcedureDeclarationNode) node);
+            visitProcedureDeclaration((ProcedureDeclarationNode) node);
+        } else if (node instanceof ProcedureCallNode) {
+            visitProcedureCall((ProcedureCallNode) node);
         }
 
-        return new Object(); // todo get rid of this hack !!!
+        return new Object();
     }
 
     public Object visitBinaryOperator(final BinaryOpNode node) {
@@ -91,7 +92,9 @@ public class Interpreter implements NodeVisitor {
     }
 
     public void visitProgram(final ProgramNode node) {
+        callStack.push(new StackFrame(node.name(), FrameType.PROGRAM, 0));
         visit(node.block());
+        callStack.pop();
     }
 
     public void visitBlock(final BlockNode node) {
@@ -100,6 +103,10 @@ public class Interpreter implements NodeVisitor {
         }
 
         visit(node.compoundStatement());
+    }
+
+    public void visitProcedureCall(final ProcedureCallNode node) {
+       // pass
     }
 
     public void visitVarDeclaration(final VariableDeclarationNode node) {
@@ -115,15 +122,13 @@ public class Interpreter implements NodeVisitor {
     }
 
     public void visitAssignNode(final AssignNode node) {
-        GLOBAL_MEMORY.put(((VariableNode) node.left()).name(), visit(node.right()));
+        final String varName =  ((VariableNode) node.left()).name();
+        final Object varValue = visit(node.right());
+        callStack.peek().set(varName, varValue);
     }
 
     public Object visitVariableNode(final VariableNode node) {
-        final String varName = node.name();
-        if (!GLOBAL_MEMORY.containsKey(varName)) {
-            throw new IllegalArgumentException("Failed to find " + varName + " in the Symbol Table.");
-        }
-        return GLOBAL_MEMORY.get(varName);
+        return callStack.peek().get(node.name());
     }
 
     public Object visitUnaryOperator(final UnaryOpNode node) {
@@ -145,7 +150,7 @@ public class Interpreter implements NodeVisitor {
         throw new IllegalStateException("Token of the node " + node + " does not match +|-");
     }
 
-    void visitProcedure(final ProcedureDeclarationNode node) {
+    void visitProcedureDeclaration(final ProcedureDeclarationNode node) {
         // pass
     }
 

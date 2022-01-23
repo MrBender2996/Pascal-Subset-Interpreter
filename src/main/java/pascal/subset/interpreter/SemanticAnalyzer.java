@@ -46,9 +46,11 @@ public class SemanticAnalyzer implements NodeVisitor {
             visitVariableDeclaration((VariableDeclarationNode) node);
         } else if (node instanceof ProcedureDeclarationNode) {
             visitProcedureDeclaration((ProcedureDeclarationNode) node);
+        } else if (node instanceof ProcedureCallNode) {
+            visitProcedureCall((ProcedureCallNode) node);
         }
 
-        return new Object(); // todo think is this the right pattern
+        return new Object();
     }
 
     void visitProgram(final ProgramNode node) {
@@ -122,6 +124,12 @@ public class SemanticAnalyzer implements NodeVisitor {
 
         visit(node.block());
         currentScope = currentScope.enclosingScope();
+    }
+
+    void visitProcedureCall(final ProcedureCallNode node) {
+        for (final Node actualParam : node.actualParams()) {
+            visit(actualParam);
+        }
     }
 
     void visitAssign(final AssignNode node) {

@@ -28,6 +28,6 @@ public class Main {
         interpreter.interpret();
 
         System.out.println("MEMORY STATE AFTER THE PROGRAM EXECUTED:");
-        Interpreter.GLOBAL_MEMORY.entrySet().forEach(System.out::println);
+        System.out.println(interpreter.callStack);
     }
 }

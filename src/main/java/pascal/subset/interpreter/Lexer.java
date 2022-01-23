@@ -128,6 +128,10 @@ public class Lexer {
         advance(); // move position from '}' to the next char
     }
 
+    char currentChar() {
+        return text.charAt(crtPos);
+    }
+
     boolean isAlphaNumeric(final char c) {
         return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
     }
