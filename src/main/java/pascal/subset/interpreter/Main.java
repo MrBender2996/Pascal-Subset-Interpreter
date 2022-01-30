@@ -18,7 +18,30 @@ public class Main {
                 "   y := 20 / 7 + 3.14\n" +
                 "END.  {Part11}";
 
-        final Lexer lexer = new Lexer(program);
+        final String scopedProgram = "PROGRAM Main;\n" +
+                "\n" +
+                "PROCEDURE Alpha(a : INTEGER; b : INTEGER);\n" +
+                "VAR x : INTEGER;\n" +
+                "\n" +
+                "   PROCEDURE Beta(a : INTEGER; b : INTEGER);\n" +
+                "   VAR x : INTEGER;\n" +
+                "   BEGIN\n" +
+                "      x := a * 10 + b * 2;\n" +
+                "   END;\n" +
+                "\n" +
+                "BEGIN\n" +
+                "   x := (a + b ) * 2;\n" +
+                "\n" +
+                "   Beta(5, 10);      { procedure call }\n" +
+                "END;\n" +
+                "\n" +
+                "BEGIN { Main }\n" +
+                "\n" +
+                "   Alpha(3 + 5, 7);  { procedure call }\n" +
+                "\n" +
+                "END.  { Main }";
+
+        final Lexer lexer = new Lexer(scopedProgram);
         final Parser parser = new Parser(lexer);
         final Node syntaxTree = parser.parse();
         final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(syntaxTree);

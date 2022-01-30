@@ -1,10 +1,15 @@
 package pascal.subset.interpreter;
 
 import pascal.subset.interpreter.ast.*;
+import pascal.subset.interpreter.errors.ErrorCodes;
+import pascal.subset.interpreter.errors.SemanticError;
 import pascal.subset.interpreter.memory.CallStack;
 import pascal.subset.interpreter.memory.FrameType;
 import pascal.subset.interpreter.memory.StackFrame;
+import pascal.subset.interpreter.symbol_table.VarSymbol;
 import pascal.subset.interpreter.tokens.*;
+
+import java.util.List;
 
 
 public class Interpreter implements NodeVisitor {
@@ -56,7 +61,7 @@ public class Interpreter implements NodeVisitor {
         }
 
         if (node.operator().type() == TokenType.KEYWORD && ((KeyWordToken) node.operator()).keyWord() == KeyWords.DIV) {
-           return divAsFloats(visit(node.left()), visit(node.right()));
+            return divAsFloats(visit(node.left()), visit(node.right()));
         }
 
         switch (((OperatorToken) node.operator()).operator()) {
@@ -106,15 +111,32 @@ public class Interpreter implements NodeVisitor {
     }
 
     public void visitProcedureCall(final ProcedureCallNode node) {
-       // pass
+        final StackFrame stackFrame = new StackFrame(node.name(), FrameType.PROCEDURE, callStack.peek().nestingLevel() + 1);
+        final List<VarSymbol> formalParams = node.symbol().params();
+        final List<Node> actualParams = node.actualParams();
+
+        if (formalParams.size() != actualParams.size()) {
+            // todo think about proper token for an exception
+            throw new SemanticError(ErrorCodes.UNEXPECTED_TOKEN, null, "Procedure " + node.name() + " expected to have " + formalParams.size() + " parameters, but found " + actualParams.size());
+        }
+
+        for (int i = 0; i < formalParams.size(); i++) {
+            stackFrame.set(formalParams.get(i).name(), visit(actualParams.get(i)));
+        }
+
+        callStack.push(stackFrame);
+
+        visit(node.symbol().blockNode());
+
+        callStack.pop();
     }
 
     public void visitVarDeclaration(final VariableDeclarationNode node) {
-        // todo implement declaration
+       //
     }
 
     public void visitVarType(final VariableTypeNode node) {
-        // todo implement type checks
+        //
     }
 
     public void visitNoOperationNode(final NoOperationNode node) {
@@ -122,7 +144,7 @@ public class Interpreter implements NodeVisitor {
     }
 
     public void visitAssignNode(final AssignNode node) {
-        final String varName =  ((VariableNode) node.left()).name();
+        final String varName = ((VariableNode) node.left()).name();
         final Object varValue = visit(node.right());
         callStack.peek().set(varName, varValue);
     }

@@ -1,10 +1,13 @@
 package pascal.subset.interpreter.symbol_table;
 
+import pascal.subset.interpreter.ast.BlockNode;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ProcedureSymbol extends Symbol {
     final List<VarSymbol> params = new ArrayList<>();
+    BlockNode blockNode;
 
     public ProcedureSymbol(final String name) {
         super(name);
@@ -25,6 +28,18 @@ public class ProcedureSymbol extends Symbol {
 
     public List<VarSymbol> params() {
         return params;
+    }
+
+    public void blockNode(final BlockNode node) {
+        this.blockNode = node;
+    }
+
+    public boolean hasNode() {
+        return blockNode != null;
+    }
+
+    public BlockNode blockNode() {
+        return blockNode;
     }
 
     @Override

@@ -122,6 +122,9 @@ public class SemanticAnalyzer implements NodeVisitor {
             procSymbol.params().add(paramSymbol);
         }
 
+
+        procSymbol.blockNode(node.block());
+
         visit(node.block());
         currentScope = currentScope.enclosingScope();
     }
@@ -129,6 +132,13 @@ public class SemanticAnalyzer implements NodeVisitor {
     void visitProcedureCall(final ProcedureCallNode node) {
         for (final Node actualParam : node.actualParams()) {
             visit(actualParam);
+        }
+
+        final Symbol procedureSymbol = currentScope.lookup(node.name());
+        if (procedureSymbol instanceof ProcedureSymbol) {
+            node.symbol((ProcedureSymbol) procedureSymbol);
+        } else {
+            throw new IllegalStateException("Expected Procedure Symbol, but found " + procedureSymbol);
         }
     }
 

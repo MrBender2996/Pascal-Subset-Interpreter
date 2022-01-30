@@ -1,7 +1,8 @@
 package pascal.subset.interpreter.memory;
 
 public enum FrameType {
-    PROGRAM("PROGRAM");
+    PROGRAM("PROGRAM"),
+    PROCEDURE("PROCEDURE");
 
     final String frameType;
 

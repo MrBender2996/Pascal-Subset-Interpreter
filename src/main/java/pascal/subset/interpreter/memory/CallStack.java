@@ -7,7 +7,7 @@ public class CallStack {
     final LinkedList<StackFrame> frames = new LinkedList<>();
 
     public void push(final StackFrame frame) {
-        frames.add(frame);
+        frames.push(frame);
     }
 
     public StackFrame pop() {

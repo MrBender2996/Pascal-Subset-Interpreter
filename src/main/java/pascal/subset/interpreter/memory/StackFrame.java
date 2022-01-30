@@ -24,6 +24,10 @@ public class StackFrame {
         return memory.get(name);
     }
 
+    public int nestingLevel() {
+        return nestingLevel;
+    }
+
     @Override
     public String toString() {
         return "StackFrame{" +
